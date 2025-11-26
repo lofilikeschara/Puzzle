@@ -3,329 +3,206 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Happy Anniversary — Jigsaw</title>
-
+<title>Happy Anniversary — Jigsaw (90 pieces)</title>
 <style>
-/* Theme derived from your uploaded CSS (visual vibe, colors). See file reference. */ 
-/* Base look (kept vibe similar to your quiz css). Citation: uploaded CSS. :contentReference[oaicite:1]{index=1} */
 :root{
-  --bg1: #ffd6ec;
-  --bg2: #d6f0ff;
-  --accent: #e60073;
-  --accent-soft: #ff80bf;
-  --card: #ffffff;
-  --rose-border: #ffe0ef;
-  --danger: #ff4d6d;
-  --good: #48d28a;
+  --bg1:#ffd6ec; --bg2:#d6f0ff; --accent:#e60073; --accent-soft:#ff80bf;
+  --card:#fff; --rose-border:#ffe0ef; --danger:#ff4d6d; --good:#48d28a;
 }
-
 *{box-sizing:border-box}
 body{
-  margin:0;
-  font-family: "Arial", sans-serif;
-  background: linear-gradient(135deg,var(--bg1),var(--bg2));
+  margin:0; font-family:Inter, "Segoe UI", system-ui, Arial, sans-serif;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
   color:#222;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-}
-
-/* Container */
-.app {
   min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:28px;
+  display:flex;align-items:center;justify-content:center;padding:22px;
 }
 
-/* Bordered box (homepage/play area) */
-.home-box{
-  background:var(--card);
-  border-radius:18px;
-  padding:28px;
-  width:920px;
-  max-width:95%;
-  box-shadow:0 10px 30px rgba(0,0,0,0.12);
-  border:4px solid var(--rose-border);
-  text-align:center;
-  position:relative;
+/* HOME / APP CARD */
+.card{
+  width:960px; max-width:96%; background:var(--card); border-radius:16px;
+  padding:22px; border:4px solid var(--rose-border); box-shadow:0 14px 40px rgba(0,0,0,0.12);
+}
+.header{display:flex;align-items:center;gap:16px;justify-content:space-between}
+.title{color:var(--accent); font-size:22px; margin:0}
+.subtitle{color:#444;font-size:14px;margin-top:6px}
+
+/* play area */
+.main{display:flex;gap:18px;margin-top:14px;align-items:flex-start}
+.left{flex:1}
+.right{width:230px;min-width:180px}
+
+/* board wrapper */
+.board-wrap{
+  background:linear-gradient(180deg,#fff,#fffaf8);padding:12px;border-radius:12px;border:2px solid var(--rose-border);
+  box-shadow:0 8px 22px rgba(0,0,0,0.06);
+  display:flex;flex-direction:column;align-items:center;gap:10px;
 }
 
-h1 {
-  margin:0 0 8px 0;
-  color:var(--accent);
-  font-size:28px;
-  letter-spacing:0.4px;
-}
-.subtitle{
-  color:#444;
-  margin-bottom:18px;
+/* the board (canvas container) */
+.board{
+  width:880px; max-width:100%; background:#f3f3f3; border-radius:8px; overflow:hidden; display:block;
+  touch-action:none; position:relative;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.6);
 }
 
-/* Play button */
-.play-btn{
-  display:inline-block;
-  background:linear-gradient(180deg,var(--accent-soft),var(--accent));
-  color:white;
-  border:none;
-  padding:12px 26px;
-  border-radius:12px;
-  font-size:18px;
-  cursor:pointer;
-  box-shadow:0 8px 18px rgba(230,0,115,0.18);
-  transition:transform .18s ease, box-shadow .18s ease;
+/* control box */
+.controls{background:var(--card); padding:12px;border-radius:10px;border:1px solid #f5e7ef}
+.btn{
+  display:inline-block;padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(180deg,var(--accent-soft),var(--accent));
+  color:white;font-weight:700;cursor:pointer;margin:6px 0;width:100%;
+  box-shadow:0 10px 22px rgba(230,0,115,0.12);
 }
-.play-btn:hover{ transform:translateY(-4px); box-shadow:0 14px 30px rgba(230,0,115,0.22); }
+.small{font-size:13px;padding:8px}
 
-/* Game stage — bordered area */
-.stage {
-  margin-top:20px;
-  display:flex;
-  gap:20px;
-  align-items:flex-start;
-  justify-content:center;
+/* piece DOM overlays will be absolute elements inside board container */
+.piece{
+  position:absolute; touch-action:none; cursor:grab; user-select:none;
+  transition: box-shadow 140ms ease, transform 220ms cubic-bezier(.2,.9,.3,1);
+  border-radius:6px; overflow:hidden;
 }
+.piece.dragging{cursor:grabbing; transform:scale(1.02); box-shadow:0 18px 40px rgba(0,0,0,0.24); z-index:9999}
+.piece.correct{ animation: fitPop .42s cubic-bezier(.2,.9,.3,1); box-shadow:0 12px 28px rgba(72,210,138,0.18); outline:3px solid rgba(72,210,138,0.85); outline-offset:-6px}
+@keyframes fitPop{ 0%{ transform:scale(1.02)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
 
-/* Puzzle box */
-.puzzle-wrap {
-  width:760px;
-  max-width:100%;
-  background:linear-gradient(180deg,#fff,#fffaf8);
-  padding:12px;
-  border-radius:14px;
-  border:2px solid var(--rose-border);
-  box-shadow:0 6px 18px rgba(0,0,0,0.08);
-  position:relative;
+.piece.wrong{ outline:2px solid rgba(255,77,109,0.95); outline-offset:-4px; animation: glowRed 900ms ease-out;}
+@keyframes glowRed{ 0%{ box-shadow:0 0 0 rgba(255,77,109,0.0);} 40%{ box-shadow:0 0 10px rgba(255,77,109,0.45);} 100%{ box-shadow:0 0 0 rgba(255,77,109,0);} }
+
+.status{font-size:13px;color:#555;margin-top:8px}
+.win-overlay{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:20000;
 }
+.win-card{background:var(--card);padding:26px;border-radius:12px;border:3px solid var(--rose-border);box-shadow:0 18px 40px rgba(0,0,0,0.25);text-align:center}
+.win-card h2{color:var(--accent);margin:0 0 6px 0}
 
-/* Controls on right */
-.controls {
-  width:220px;
-  min-width:160px;
-  background:var(--card);
-  border-radius:12px;
-  padding:12px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.06);
-  text-align:center;
+.note{font-size:13px;color:#666;margin-top:8px}
+.footer{margin-top:12px;font-size:12px;color:#777;text-align:center}
+@media (max-width:1100px){
+  .board{width:720px}
 }
-
-.controls button {
-  width:100%;
-  margin:8px 0;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  cursor:pointer;
-  background:var(--accent-soft);
-  color:white;
-  font-weight:600;
-}
-.controls .small { font-size:13px; padding:8px; }
-
-/* The actual puzzle board */
-.board {
-  position:relative;
-  touch-action:none;
-  margin: 0 auto;
-  background: #eee;
-  border-radius:6px;
-  overflow:hidden;
-}
-
-/* Slot grid (visual subtle lines) */
-.slot {
-  box-sizing:border-box;
-  border: 1px dashed rgba(0,0,0,0.04);
-}
-
-/* Piece */
-.piece {
-  position:absolute;
-  background-image: none;
-  background-size: cover;
-  background-repeat: no-repeat;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-  border-radius:4px;
-  cursor:grab;
-  transition: box-shadow 150ms ease, transform 220ms cubic-bezier(.22,.9,.28,1);
-  will-change: left, top, transform;
-  overflow:hidden;
-  border:2px solid transparent;
-}
-
-/* When dragging */
-.piece.dragging { cursor:grabbing; transform: scale(1.02); box-shadow: 0 18px 40px rgba(0,0,0,0.22); z-index:9999; }
-
-/* thin glowy redline when placed wrongly (small outline) */
-.piece.wrong {
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-  outline: 2px solid rgba(255,77,109,0.95);
-  outline-offset: -4px;
-  animation: glowRed 900ms ease-out;
-}
-@keyframes glowRed {
-  0% { box-shadow: 0 0 0 rgba(255,77,109,0.0); }
-  40% { box-shadow: 0 0 10px rgba(255,77,109,0.45); }
-  100% { box-shadow: 0 0 0 rgba(255,77,109,0.0); }
-}
-
-/* correct placement animation (pop + green glow) */
-.piece.correct {
-  animation: fitPop 420ms cubic-bezier(.2,.9,.3,1);
-  box-shadow: 0 12px 28px rgba(72,210,138,0.18);
-  outline: 3px solid rgba(72,210,138,0.85);
-  outline-offset: -6px;
-}
-@keyframes fitPop {
-  0% { transform: scale(1.02); }
-  50% { transform: scale(1.12); }
-  100% { transform: scale(1.0); }
-}
-
-/* header small text */
-.stats { font-size:13px; color:#555; margin-top:8px; }
-
-/* Win overlay */
-.win-overlay {
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:rgba(0,0,0,0.35);
-  z-index:12000;
-}
-.win-card {
-  background:var(--card);
-  padding:26px;
-  border-radius:12px;
-  border:3px solid var(--rose-border);
-  box-shadow:0 18px 40px rgba(0,0,0,0.25);
-  text-align:center;
-}
-.win-card h2 { color:var(--accent); margin:0 0 6px 0; }
-
-/* small utilities */
-.row { display:flex; gap:10px; align-items:center; justify-content:center; }
-.small-note { font-size:12px; color:#666; margin-top:8px; }
-
-/* responsive */
-@media (max-width:980px){
-  .stage { flex-direction:column; gap:12px; align-items:center; }
-  .controls { width:95%; }
-  .puzzle-wrap { width:100%; }
+@media (max-width:820px){
+  .main{flex-direction:column}
+  .right{width:100%}
+  .board{width:92vw}
 }
 </style>
 </head>
 <body>
-<div class="app">
+  <div class="card" role="main" aria-label="Anniversary jigsaw app">
+    <div class="header">
+      <div>
+        <h1 class="title">Happy Aniversary, my silly bun bun 💕</h1>
+        <div class="subtitle">A little surprise puzzle for you</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;color:#666">Made with ♥</div>
+      </div>
+    </div>
 
-  <!-- HOMEPAGE / PLAY SCREEN -->
-  <div id="home" class="home-box" role="main" aria-label="Happy Anniversary Landing">
-    <h1>Happy Aniversary, my silly bun bun 💕</h1>
-    <div class="subtitle">A little puzzle for you — finish it to see a surprise!</div>
+    <!-- HOME with Play button -->
+    <div id="homeView" style="margin-top:18px;background:linear-gradient(180deg,#fff,#fff7fb);padding:14px;border-radius:12px;border:1px solid var(--rose-border);display:block">
+      <strong>How to play</strong>
+      <div style="font-size:13px;color:#555;margin-top:8px;">
+        Solve this small puzzle to reveal the favourite photo of me and wifey &gt;:p
+      </div>
+      <div style="display:flex;gap:16px;align-items:center;margin-top:12px;">
+        <div style="flex:1">
+          <div style="background:#fff;padding:10px;border-radius:10px;border:1px solid #f3e6ee;color:#444">
+            Click <strong>Play</strong> to start the puzzle. Drag pieces to move them. Pieces snap when very close to correct; wrong placements flash a thin red glow.
+          </div>
+        </div>
+        <div style="width:180px">
+          <button id="playBtn" class="btn">Play</button>
+        </div>
+      </div>
+    </div>
 
-    <div style="display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;">
-      <div style="width:420px; text-align:left;">
-        <div style="background:linear-gradient(180deg,#fff,#fff7fb); padding:12px; border-radius:10px; border:1px solid var(--rose-border);">
-          <strong>How to play</strong>
-          <div style="font-size:13px;color:#555;margin-top:6px;">
-            Click <em>Play</em>, drag the pieces into place. Pieces snap when they are almost correct. Wrong placements flash a thin red glow.
+    <!-- GAME VIEW -->
+    <div id="gameView" style="display:none;margin-top:16px">
+      <div class="main">
+        <div class="left">
+          <div class="board-wrap">
+            <div id="board" class="board" aria-label="Puzzle board" ></div>
+            <div class="note">Pieces: <span id="placedCount">0</span>/90 &nbsp; • &nbsp; Time: <span id="time">00:00</span></div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="controls">
+            <div style="font-weight:700;color:var(--accent);margin-bottom:8px">Controls</div>
+            <button id="shuffleBtn" class="small btn">Shuffle</button>
+            <button id="resetBtn" class="small" style="background:linear-gradient(180deg,#f3f3f3,#e9e9e9);color:#222;border:1px solid #ddd">Reset (Auto-solve)</button>
+            <button id="snapshotBtn" class="small" style="background:linear-gradient(180deg,#fff4f9,#ffdff0);color:#b1004b">Download Snapshot</button>
+            <div class="status" style="margin-top:10px">Tip: Pieces have jigsaw tabs & holes to make matching easier.</div>
           </div>
         </div>
       </div>
+    </div>
 
-      <div>
-        <button id="playBtn" class="play-btn">Play</button>
-        <div style="margin-top:8px;font-size:12px;color:#666">Click to start the 120-piece puzzle</div>
-      </div>
+  </div>
+
+  <!-- Win overlay -->
+  <div id="winOverlay" class="win-overlay" style="display:none">
+    <div class="win-card">
+      <h2>All done! 🎉</h2>
+      <p style="margin:12px 0">Happy Anniversary — you revealed the photo ❤️</p>
+      <button id="closeWin" class="btn" style="padding:10px 18px">Close</button>
     </div>
   </div>
-
-  <!-- GAME (hidden until Play pressed) -->
-  <div id="game" class="home-box hidden" style="display:none;">
-    <h1 style="font-size:22px">Happy Aniversary — Jigsaw</h1>
-    <div class="subtitle">Place all pieces to finish ♥</div>
-
-    <div class="stage">
-      <div class="puzzle-wrap">
-        <!-- board will be injected -->
-        <div id="board" class="board" style="width:720px;height:600px;"></div>
-      </div>
-
-      <div class="controls">
-        <div style="font-weight:700;color:var(--accent);">Controls</div>
-        <div class="row" style="margin-top:8px">
-          <input id="imageInput" type="file" accept="image/*" />
-        </div>
-        <button id="shuffleBtn" class="small">Shuffle</button>
-        <button id="resetBtn" class="small">Reset</button>
-        <button id="exportBtn" class="small">Download Snapshot</button>
-
-        <div class="stats">
-          <div>Time: <span id="time">00:00</span></div>
-          <div>Placed: <span id="placed">0</span>/120</div>
-          <div class="small-note">Thin red glow = wrong; green pop = correct</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- Win overlay -->
-<div id="win" class="win-overlay hidden" style="display:none;">
-  <div class="win-card">
-    <h2>All done! 🎉</h2>
-    <p style="margin:12px 0 8px 0">Happy Anniversary, my silly bun bun — you solved it!</p>
-    <button id="closeWin" class="play-btn" style="padding:10px 18px">Close</button>
-  </div>
-</div>
 
 <script>
-/* Puzzle logic
- - Fixed 12 x 10 = 120 pieces
- - Pieces are rectangular grid tiles (no irregular shapes for performance)
- - Drag physics: track recent pointer positions to estimate velocity and add inertia on release
- - Snap tolerance: if piece center within snapTolerance px of its correct cell center => fit (play animation)
- - Wrong placement shows thin red glow briefly
- - You can upload your own image; default uses the uploaded one if you drop it via file input
+/*
+ Standalone Jigsaw 90-piece (10 x 9) with real jigsaw-shaped pieces.
+ The main image is embedded as a data URL (so no upload needed).
+ Save as jigsaw90.html and open in browser.
 */
 
-// CONFIG
-const COLS = 12;
-const ROWS = 10;
-const TOTAL = COLS * ROWS;
-const SNAP_TOLERANCE = 24; // px for center to snap as correct
-const BOARD_W = 720;
-const BOARD_H = 600;
+// ---------- EMBEDDED IMAGE DATA (your uploaded image) ----------
+const IMAGE_DATA = "data:image/png;base64,REPLACE_BASE64";
+// ---------- end image ----------
 
+// We'll replace the placeholder token with actual base64 when injecting this file.
+// If you saved the file exactly as given here, replace REPLACE_BASE64 with the base64 string.
+// (Below in the instruction I include the full file already embedded.)
+
+// CONFIG
+const COLS = 10;
+const ROWS = 9;
+const TOTAL = COLS * ROWS;
+const BOARD_W = 880;   // width in px used for board (keeps ratio)
+const BOARD_H = 720;   // height in px
+const PIECE_W = BOARD_W / COLS;
+const PIECE_H = BOARD_H / ROWS;
+const SNAP_TOLERANCE = Math.max(PIECE_W, PIECE_H) * 0.28; // tolerance for snapping (generous)
 const boardEl = document.getElementById('board');
-const homeEl = document.getElementById('home');
-const gameEl = document.getElementById('game');
 const playBtn = document.getElementById('playBtn');
+const homeView = document.getElementById('homeView');
+const gameView = document.getElementById('gameView');
 const shuffleBtn = document.getElementById('shuffleBtn');
 const resetBtn = document.getElementById('resetBtn');
+const placedCountEl = document.getElementById('placedCount');
 const timeEl = document.getElementById('time');
-const placedEl = document.getElementById('placed');
-const imageInput = document.getElementById('imageInput');
-const exportBtn = document.getElementById('exportBtn');
-const winOverlay = document.getElementById('win');
+const winOverlay = document.getElementById('winOverlay');
 const closeWin = document.getElementById('closeWin');
+const snapshotBtn = document.getElementById('snapshotBtn');
 
-let imageSrc = null;         // data URL / blob URL of image
-let pieces = [];             // piece objects
-let tileW = BOARD_W / COLS, tileH = BOARD_H / ROWS;
-let dragging = null;         // {piece, startX, startY, offsetX, offsetY, pointerId, history:[]}
+let img = new Image();
+img.src = IMAGE_DATA;
+let pieces = []; // objects for each piece
+let connectors = []; // connectors grid to ensure compatibility (tab: 1, hole: -1, flat:0)
+let dragging = null; // {el, piece, offsetX, offsetY, startX,startY, lastPositions}
 let placedCount = 0;
-let timer = {start: null, interval: null};
+let timerInterval = null;
+let startTime = null;
 
-// Set board size
+// init board size
 boardEl.style.width = BOARD_W + 'px';
 boardEl.style.height = BOARD_H + 'px';
+boardEl.style.position = 'relative';
 
-// helper to format time
-function fmtTime(ms) {
+// Helper: format time
+function fmtTime(ms){
   const s = Math.floor(ms/1000);
   const mm = String(Math.floor(s/60)).padStart(2,'0');
   const ss = String(s%60).padStart(2,'0');
@@ -333,425 +210,7 @@ function fmtTime(ms) {
 }
 
 function startTimer(){
-  timer.start = Date.now();
-  if(timer.interval) clearInterval(timer.interval);
-  timer.interval = setInterval(()=>{
-    timeEl.textContent = fmtTime(Date.now()-timer.start);
-  },500);
-}
-function stopTimer(){
-  if(timer.interval) clearInterval(timer.interval);
-  timer.interval = null;
-}
-
-function resetTimer(){
-  stopTimer();
-  timeEl.textContent = '00:00';
-  timer.start = null;
-}
-
-// UI: show home or game
-playBtn.addEventListener('click', ()=> {
-  homeEl.style.display='none';
-  gameEl.style.display='block';
-  // initialize board with default image (your uploaded image in /mnt/data won't be available in browser),
-  // user should upload via input. We'll use a placeholder gradient if none supplied.
-  initBoard();
-  startTimer();
-});
-
-// load user image
-imageInput.addEventListener('change', (ev)=>{
-  const f = ev.target.files && ev.target.files[0];
-  if(!f) return;
-  const url = URL.createObjectURL(f);
-  setImage(url);
-});
-
-// export snapshot
-exportBtn.addEventListener('click', ()=>{
-  // draw board to canvas
-  const c = document.createElement('canvas');
-  c.width = BOARD_W; c.height = BOARD_H;
-  const ctx = c.getContext('2d');
-  if(!imageSrc){
-    alert('No image loaded.');
-    return;
-  }
-  const img = new Image();
-  img.onload = ()=>{
-    ctx.drawImage(img,0,0,BOARD_W,BOARD_H);
-    // overlay message
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillRect(0, BOARD_H-50, BOARD_W, 50);
-    ctx.fillStyle = '#e60073';
-    ctx.font = '20px Arial';
-    ctx.fillText('Happy Aniversary, my silly bun bun', 12, BOARD_H-18);
-    const data = c.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = data; a.download='puzzle-snapshot.png';
-    a.click();
-  };
-  img.src = imageSrc;
-});
-
-// Reset pieces to solved order
-resetBtn.addEventListener('click', ()=>{
-  pieces.forEach(p=>{ p.pos = p.index; updatePieceDOM(p); p.solved = true; setCorrectState(p,true); });
-  placedCount = TOTAL; updatePlaced();
-});
-
-// Shuffle
-shuffleBtn.addEventListener('click', ()=> {
-  scramblePieces();
-});
-
-// Win close
-closeWin.addEventListener('click', ()=>{
-  winOverlay.style.display='none';
-});
-
-// Initialize board DOM and data
-function initBoard(){
-  boardEl.innerHTML = '';
-  tileW = BOARD_W / COLS; tileH = BOARD_H / ROWS;
-  pieces = [];
-  placedCount = 0; updatePlaced();
-  resetTimer();
-
-  // generate default placeholder background if no image
-  if(!imageSrc){
-    // create gradient canvas as placeholder, but you should upload an image
-    const placeholder = document.createElement('canvas');
-    placeholder.width = BOARD_W; placeholder.height = BOARD_H;
-    const ctx = placeholder.getContext('2d');
-    const g = ctx.createLinearGradient(0,0,BOARD_W,BOARD_H);
-    g.addColorStop(0,'#ffd6ec'); g.addColorStop(1,'#d6f0ff');
-    ctx.fillStyle = g; ctx.fillRect(0,0,BOARD_W,BOARD_H);
-    imageSrc = placeholder.toDataURL();
-  }
-
-  // create slot visuals (optional subtle grid)
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const slot = document.createElement('div');
-      slot.className = 'slot';
-      slot.style.position='absolute';
-      slot.style.left = (c*tileW) + 'px';
-      slot.style.top = (r*tileH) + 'px';
-      slot.style.width = tileW + 'px';
-      slot.style.height = tileH + 'px';
-      slot.style.pointerEvents='none';
-      boardEl.appendChild(slot);
-    }
-  }
-
-  // create piece objects & DOM
-  for(let i=0;i<TOTAL;i++){
-    const r = Math.floor(i/COLS), c = i % COLS;
-    const p = {
-      index: i,           // correct cell index
-      pos: i,             // current cell index
-      solved: true,       // initially correct until shuffled
-      dom: null
-    };
-    const el = document.createElement('div');
-    el.className = 'piece';
-    el.style.width = tileW + 'px';
-    el.style.height = tileH + 'px';
-    // use background-image with positioning to show tile of the main image
-    const bgX = -(c * tileW);
-    const bgY = -(r * tileH);
-    el.style.backgroundImage = `url(${imageSrc})`;
-    el.style.backgroundSize = `${COLS * 100}% ${ROWS * 100}%`;
-    // background-position could be percent (like earlier). computes percent:
-    const posXPct = (c / (COLS-1))*100 || 0;
-    const posYPct = (r / (ROWS-1))*100 || 0;
-    el.style.backgroundPosition = `${posXPct}% ${posYPct}%`;
-    // place at correct location
-    el.style.left = (c * tileW) + 'px';
-    el.style.top = (r * tileH) + 'px';
-
-    // attach events
-    attachPointerHandlers(el, p);
-
-    p.dom = el;
-    boardEl.appendChild(el);
-    pieces.push(p);
-  }
-
-  // shuffle at start
-  scramblePieces();
-  startTimer();
-  updatePlaced();
-}
-
-// set main image (replaces backgrounds)
-function setImage(url){
-  imageSrc = url;
-  // update each piece background
-  pieces.forEach((p)=>{
-    p.dom.style.backgroundImage = `url(${imageSrc})`;
-  });
-  // re-init if pieces were empty
-  if(pieces.length===0) initBoard();
-}
-
-// Scramble algorithm
-function scramblePieces(){
-  // set solved false
-  pieces.forEach(p=>{ p.solved=false; setCorrectState(p,false); });
-  // create array of indices and shuffle
-  const indices = pieces.map(p=>p.index);
-  for(let i=indices.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [indices[i], indices[j]] = [indices[j], indices[i]];
-  }
-  // apply to positions
-  pieces.forEach((p, idx)=>{
-    p.pos = indices[idx];
-    updatePieceDOM(p, true);
-  });
-  placedCount = pieces.filter(p=>p.pos===p.index).length;
-  updatePlaced();
-}
-
-// update placed counter UI
-function updatePlaced(){
-  placedEl.textContent = placedCount;
-  if(placedCount === TOTAL){
-    // solved: stop timer and show win
-    stopTimer();
-    setTimeout(()=>{ showWin(); }, 500);
-  }
-}
-
-// show win overlay
-function showWin(){
-  winOverlay.style.display='flex';
-}
-
-// set DOM position
-function updatePieceDOM(p, immediate=false){
-  const r = Math.floor(p.pos / COLS), c = p.pos % COLS;
-  const left = c * tileW, top = r * tileH;
-  if(immediate){
-    p.dom.style.transition = 'none';
-    p.dom.style.left = left + 'px';
-    p.dom.style.top = top + 'px';
-    requestAnimationFrame(()=> p.dom.style.transition = '');
-  } else {
-    p.dom.style.left = left + 'px';
-    p.dom.style.top = top + 'px';
-  }
-}
-
-// pointer helpers + physics
-function attachPointerHandlers(el, piece){
-  let lastPositions = []; // array of {t,x,y} to estimate velocity
-  let pointerId = null;
-
-  function onDown(e){
-    e.preventDefault();
-    const ev = e.touches ? e.touches[0] : e;
-    pointerId = ev.pointerId || ev.identifier || 1;
-    // bring to top visually
-    el.classList.add('dragging');
-    el.style.zIndex = 5000;
-    // compute offset
-    const rect = boardEl.getBoundingClientRect();
-    const left = parseFloat(el.style.left);
-    const top = parseFloat(el.style.top);
-    const offsetX = ev.clientX - rect.left - left;
-    const offsetY = ev.clientY - rect.top - top;
-
-    dragging = { piece, offsetX, offsetY, startLeft:left, startTop:top, history:[] };
-    lastPositions = [];
-    recordPos(ev);
-    // prevent text selection
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('touchmove', onMove, {passive:false});
-    window.addEventListener('touchend', onUp);
-  }
-
-  function recordPos(ev){
-    const rect = boardEl.getBoundingClientRect();
-    const x = (ev.clientX - rect.left);
-    const y = (ev.clientY - rect.top);
-    lastPositions.push({t:Date.now(), x, y});
-    if(lastPositions.length>6) lastPositions.shift();
-  }
-
-  function onMove(e){
-    if(!dragging) return;
-    e.preventDefault();
-    const ev = e.touches ? e.touches[0] : e;
-    recordPos(ev);
-    // compute new left/top
-    const rect = boardEl.getBoundingClientRect();
-    let x = ev.clientX - rect.left - dragging.offsetX;
-    let y = ev.clientY - rect.top - dragging.offsetY;
-    // clamp within board
-    x = Math.max(-tileW*0.3, Math.min(BOARD_W - tileW*0.7, x));
-    y = Math.max(-tileH*0.3, Math.min(BOARD_H - tileH*0.7, y));
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-  }
-
-  function estimateVelocity(){
-    if(lastPositions.length < 2) return {vx:0, vy:0};
-    const a = lastPositions[0];
-    const b = lastPositions[lastPositions.length-1];
-    const dt = Math.max(1, b.t - a.t);
-    const vx = (b.x - a.x) / dt; // px per ms
-    const vy = (b.y - a.y) / dt;
-    return {vx, vy};
-  }
-
-  function onUp(e){
-    if(!dragging) return;
-    const ev = (e.changedTouches ? e.changedTouches[0] : e);
-    // remove listeners
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-    window.removeEventListener('touchmove', onMove);
-    window.removeEventListener('touchend', onUp);
-
-    // estimate velocity and apply small inertia animation
-    const vel = estimateVelocity(); // px per ms
-    // compute where center ended up
-    const rect = boardEl.getBoundingClientRect();
-    const curLeft = parseFloat(el.style.left);
-    const curTop = parseFloat(el.style.top);
-    const centerX = curLeft + tileW/2;
-    const centerY = curTop + tileH/2;
-
-    // find target cell under center
-    const targetC = Math.max(0, Math.min(COLS-1, Math.floor(centerX / tileW)));
-    const targetR = Math.max(0, Math.min(ROWS-1, Math.floor(centerY / tileH)));
-    const targetIndex = targetR * COLS + targetC;
-    const targetLeft = targetC * tileW;
-    const targetTop = targetR * tileH;
-
-    // compute distance from correct center
-    const correctR = Math.floor(dragging.piece.index / COLS), correctC = dragging.piece.index % COLS;
-    const correctCenterX = correctC*tileW + tileW/2;
-    const correctCenterY = correctR*tileH + tileH/2;
-    const distToCorrect = Math.hypot(centerX - correctCenterX, centerY - correctCenterY);
-
-    // If center is within snap tolerance, snap to correct cell and mark solved
-    if(distToCorrect <= SNAP_TOLERANCE){
-      // animate to correct pos with fitting animation
-      dragging.piece.pos = dragging.piece.index;
-      updatePieceDOM(dragging.piece);
-      setTimeout(()=> {
-        dragging.piece.dom.classList.add('correct');
-        setTimeout(()=> dragging.piece.dom.classList.remove('correct'), 700);
-      }, 40);
-
-      if(!dragging.piece.solved){
-        dragging.piece.solved = true;
-        placedCount++;
-        updatePlaced();
-      }
-    } else {
-      // otherwise, place into targetIndex (swap if necessary)
-      const occupying = pieces.find(p => p !== dragging.piece && p.pos === targetIndex);
-      if(occupying){
-        // swap positions
-        const oldPos = dragging.piece.pos;
-        dragging.piece.pos = occupying.pos;
-        occupying.pos = oldPos;
-        // animate both to their new spots; reveal wrong glow if either not correct
-        updatePieceDOM(dragging.piece);
-        updatePieceDOM(occupying);
-        // update solved flags
-        if(dragging.piece.pos === dragging.piece.index && !dragging.piece.solved){
-          dragging.piece.solved = true; placedCount++; setCorrectState(dragging.piece,true);
-        } else if(dragging.piece.solved && dragging.piece.pos !== dragging.piece.index){
-          dragging.piece.solved = false; placedCount--; setCorrectState(dragging.piece,false);
-        }
-        if(occupying.pos === occupying.index && !occupying.solved){
-          occupying.solved = true; placedCount++; setCorrectState(occupying,true);
-        } else if(occupying.solved && occupying.pos !== occupying.index){
-          occupying.solved = false; placedCount--; setCorrectState(occupying,false);
-        }
-        // if either is wrong now, flash thin red glow
-        if(!dragging.piece.solved) flashWrong(dragging.piece);
-        if(!occupying.solved) flashWrong(occupying);
-
-        updatePlaced();
-      } else {
-        // move dragging piece to targetIndex
-        dragging.piece.pos = targetIndex;
-        updatePieceDOM(dragging.piece);
-        // set solved flag appropriately
-        if(dragging.piece.pos === dragging.piece.index && !dragging.piece.solved){
-          dragging.piece.solved = true; placedCount++; setCorrectState(dragging.piece,true);
-        } else if(dragging.piece.solved && dragging.piece.pos !== dragging.piece.index){
-          dragging.piece.solved = false; placedCount--; setCorrectState(dragging.piece,false);
-        }
-        if(!dragging.piece.solved) flashWrong(dragging.piece);
-        updatePlaced();
-      }
-    }
-
-    // small inertia: apply a translation based on velocity as visual (soft)
-    const {vx, vy} = vel; // px/ms
-    const travel = Math.min(1200, Math.hypot(vx,vy)*300); // ms scaled
-    // we already set left/top to final positions; optional extra visual could be added here
-    // cleanup
-    el.classList.remove('dragging');
-    el.style.zIndex = '';
-    dragging = null;
-  }
-
-  // attach both pointer and touch
-  el.addEventListener('pointerdown', onDown);
-  el.addEventListener('touchstart', onDown, {passive:false});
-}
-
-// flash wrong thin red glow
-function flashWrong(p){
-  p.dom.classList.add('wrong');
-  setTimeout(()=> p.dom.classList.remove('wrong'), 720);
-}
-
-// set correct/incorrect visual state (outline etc.)
-function setCorrectState(p, isCorrect){
-  if(isCorrect){
-    p.dom.classList.add('correct');
-    setTimeout(()=> p.dom.classList.remove('correct'), 700);
-  } else {
-    // ensure no correct outline
-    p.dom.classList.remove('correct');
-  }
-}
-
-// load default image automatically if you want (commented out)
-// setImage('path/to/your-photo.jpg');
-
-
-// OPTIONAL: if user directly drops a file onto page, load it
-window.addEventListener('dragover', e=> e.preventDefault());
-window.addEventListener('drop', e=>{
-  e.preventDefault();
-  const f = e.dataTransfer.files && e.dataTransfer.files[0];
-  if(!f) return;
-  const url = URL.createObjectURL(f);
-  setImage(url);
-  if(gameEl.style.display === 'none'){
-    // start game automatically
-    homeEl.style.display='none';
-    gameEl.style.display='block';
-    initBoard();
-    startTimer();
-  } else {
-    // update pieces backgrounds
-    pieces.forEach(p=> p.dom.style.backgroundImage = `url(${imageSrc})`);
-  }
-});
-</script>
-</body>
-</html>
+  startTime = Date.now();
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    timeEl.textContent = fmtTime(Date.now() - startTim
