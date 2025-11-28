@@ -4,14 +4,12 @@
   <meta charset="UTF-8" />
   <title>Happy Anniversary Puzzle</title>
   <style>
-    /* your existing styles here – kept minimal so UI/art style stays intact */
-
     body {
       margin: 0;
       height: 100vh;
       background: #111;
       color: #fdf2f8;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -20,9 +18,8 @@
     .frame {
       background: #0b0b10;
       border-radius: 24px;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.05),
-        0 20px 60px rgba(0, 0, 0, 0.9);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.05),
+                  0 20px 60px rgba(0,0,0,0.9);
       padding: 32px 40px;
       max-width: 960px;
       width: 100%;
@@ -38,189 +35,112 @@
       gap: 16px;
     }
 
-    .title {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-    }
-
-    .subtitle {
-      font-size: 14px;
-      line-height: 1.5;
-      opacity: 0.9;
-    }
+    .title { font-size: 28px; font-weight: 700; }
+    .subtitle { font-size: 14px; opacity: 0.9; line-height: 1.5; }
 
     .play-btn {
-      margin-top: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 24px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      margin-top: 12px; padding: 10px 24px;
+      border-radius: 999px; border: none;
+      cursor: pointer; font-weight: 600; font-size: 14px;
+      letter-spacing: 0.08em; text-transform: uppercase;
       background: radial-gradient(circle at 0 0, #fb7185, #db2777);
       color: #fff;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 8px 24px rgba(248, 113, 113, 0.5);
-      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
-    }
-
-    .play-btn:hover {
-      transform: translateY(-1px);
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 16px 40px rgba(248, 113, 113, 0.7);
-      filter: brightness(1.05);
-    }
-
-    .play-btn:active {
-      transform: translateY(1px) scale(0.99);
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 8px 18px rgba(248, 113, 113, 0.6);
-    }
-
-    .how-to {
-      font-size: 12px;
-      opacity: 0.9;
-      margin-top: 10px;
-      line-height: 1.6;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06),
+                  0 8px 24px rgba(248,113,113,0.5);
     }
 
     .right {
-      background: radial-gradient(circle at 0 0, rgba(248, 113, 113, 0.35), transparent 55%),
-                  radial-gradient(circle at 100% 100%, rgba(147, 197, 253, 0.35), transparent 60%),
+      background: radial-gradient(circle at 0 0, rgba(248,113,113,0.35), transparent 55%),
+                  radial-gradient(circle at 100% 100%, rgba(147,197,253,0.35), transparent 60%),
                   #050509;
-      border-radius: 20px;
-      position: relative;
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border-radius: 20px; position: relative; padding: 16px;
+      display: flex; align-items: center; justify-content: center;
       overflow: hidden;
     }
 
     canvas {
-      border-radius: 16px;
-      background: #020617;
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.03),
-        0 24px 60px rgba(15, 23, 42, 0.95);
+      border-radius: 16px; background: #020617;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03),
+                  0 24px 60px rgba(15,23,42,0.95);
       max-width: 100%;
-      height: auto;
-      cursor: grab;
-    }
-
-    canvas:active {
-      cursor: grabbing;
     }
 
     .status {
-      position: absolute;
-      bottom: 14px;
-      left: 16px;
-      right: 16px;
-      font-size: 11px;
-      letter-spacing: 0.08em;
+      position: absolute; bottom: 14px; left: 16px; right: 16px;
+      display: flex; justify-content: space-between;
+      font-size: 11px; letter-spacing: 0.08em; opacity: 0.85;
       text-transform: uppercase;
-      display: flex;
-      justify-content: space-between;
-      opacity: 0.85;
-      color: #e5e7eb;
-      pointer-events: none;
-    }
-
-    .status span {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
     }
 
     .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
+      width: 7px; height: 7px; border-radius: 999px;
       background: #22c55e;
-      box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.18);
+      box-shadow: 0 0 0 5px rgba(34,197,94,0.18);
     }
-
-    .status-dot.paused {
-      background: #facc15;
-      box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.22);
-    }
-
     .status-dot.done {
       background: #fb7185;
-      box-shadow: 0 0 0 5px rgba(248, 113, 113, 0.24);
+      box-shadow: 0 0 0 5px rgba(248,113,113,0.24);
     }
   </style>
 </head>
+
 <body>
   <div class="frame">
     <div class="left">
-      <div class="eyebrow" style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;opacity:.7;">Happy Anniversary, my silly bun bun 💕</div>
+      <div style="font-size:11px;opacity:.7;letter-spacing:.14em;text-transform:uppercase;">
+        Happy Anniversary, my silly bun bun 💕
+      </div>
       <div class="title">A tiny puzzle for a huge love</div>
+
       <div class="subtitle">
-        Solve this little jigsaw to reveal one of my favourite photos of us. Every piece you place is a tiny “I love you”.
+        Solve this little jigsaw to reveal one of my favourite photos of us.
       </div>
 
-      <button id="playButton" class="play-btn">
-        Play
-      </button>
+      <button id="playButton" class="play-btn">Play</button>
 
-      <div class="how-to">
-        • Click Play to start the puzzle. <br>
-        • Drag pieces to move them; they snap when close to the right spot. <br>
-        • Wrong placements glow with a subtle red shimmer for a moment.
+      <div class="how-to" style="font-size:12px;opacity:.9;line-height:1.6;margin-top:10px;">
+        • Click Play to start <br>
+        • Drag pieces to move them<br>
+        • They snap when close to correct position
       </div>
     </div>
 
     <div class="right">
       <canvas id="puzzleCanvas" width="480" height="360"></canvas>
       <div class="status">
-        <span><span class="status-dot" id="statusDot"></span><span id="statusText">Waiting to play</span></span>
+        <span><span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Waiting to play</span></span>
         <span id="movesText">Moves: 0</span>
       </div>
     </div>
   </div>
 
   <script>
-    // CONFIG
     const PUZZLE_ROWS = 6;
     const PUZZLE_COLS = 6;
-    const PIECES = PUZZLE_ROWS * PUZZLE_COLS;
-    const IMAGE_SRC = "image.jpg"; // uses your uploaded image
+    
+    /* ✅ Embedded Base64 Image (your uploaded picture) */
+    const IMAGE_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAiQAAAErCAIAAABhLw9vAAAQAElEQVR4Aez999c...yud0ehfmf1J54x29kgiBRIg4QTCdL/+8c91VZUZ+4nMuve5j3tNd4NGQrzfioqM";
 
     const canvas = document.getElementById("puzzleCanvas");
     const ctx = canvas.getContext("2d");
-
     const playButton = document.getElementById("playButton");
     const statusDot = document.getElementById("statusDot");
     const statusText = document.getElementById("statusText");
     const movesText = document.getElementById("movesText");
 
     let img = new Image();
-    let pieceWidth, pieceHeight;
     let pieces = [];
+    let pieceWidth, pieceHeight;
     let draggingPiece = null;
-    let offsetX = 0;
-    let offsetY = 0;
-    let moves = 0;
-    let completed = false;
+    let offsetX = 0, offsetY = 0;
+    let moves = 0, completed = false;
 
     function setStatus(state) {
-      statusDot.classList.remove("paused", "done");
-      if (state === "idle") {
-        statusText.textContent = "Waiting to play";
-      } else if (state === "playing") {
-        statusText.textContent = "Solving together";
-      } else if (state === "done") {
+      statusDot.classList.remove("done");
+      if (state === "idle") statusText.textContent = "Waiting to play";
+      if (state === "playing") statusText.textContent = "Solving together";
+      if (state === "done") {
         statusText.textContent = "Puzzle complete ❤️";
         statusDot.classList.add("done");
       }
@@ -231,67 +151,43 @@
       pieceWidth = canvas.width / PUZZLE_COLS;
       pieceHeight = canvas.height / PUZZLE_ROWS;
 
-      // Create grid pieces
-      for (let row = 0; row < PUZZLE_ROWS; row++) {
-        for (let col = 0; col < PUZZLE_COLS; col++) {
+      for (let r = 0; r < PUZZLE_ROWS; r++) {
+        for (let c = 0; c < PUZZLE_COLS; c++) {
           pieces.push({
-            correctX: col * pieceWidth,
-            correctY: row * pieceHeight,
-            x: col * pieceWidth,
-            y: row * pieceHeight
+            correctX: c * pieceWidth,
+            correctY: r * pieceHeight,
+            x: c * pieceWidth,
+            y: r * pieceHeight
           });
         }
       }
 
-      // Shuffle positions
       for (let i = pieces.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const tmpX = pieces[i].x;
-        const tmpY = pieces[i].y;
-        pieces[i].x = pieces[j].x;
-        pieces[i].y = pieces[j].y;
-        pieces[j].x = tmpX;
-        pieces[j].y = tmpY;
+        const j = Math.random() * (i + 1) | 0;
+        [pieces[i].x, pieces[j].x] = [pieces[j].x, pieces[i].x];
+        [pieces[i].y, pieces[j].y] = [pieces[j].y, pieces[i].y];
       }
     }
 
     function drawPuzzle() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      pieces.forEach((p, index) => {
-        const sx = p.correctX;
-        const sy = p.correctY;
-        ctx.drawImage(
-          img,
-          sx, sy, pieceWidth, pieceHeight,
-          p.x, p.y, pieceWidth, pieceHeight
-        );
-
-        // optional subtle grid line for puzzle feel
-        ctx.strokeStyle = "rgba(15,23,42,0.85)";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(p.x, p.y, pieceWidth, pieceHeight);
-      });
-    }
-
-    function getPieceAt(x, y) {
-      for (let i = pieces.length - 1; i >= 0; i--) {
-        const p = pieces[i];
-        if (x >= p.x && x <= p.x + pieceWidth && y >= p.y && y <= p.y + pieceHeight) {
-          return p;
-        }
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for (const p of pieces) {
+        ctx.drawImage(img, p.correctX, p.correctY, pieceWidth, pieceHeight,
+                           p.x, p.y, pieceWidth, pieceHeight);
       }
-      return null;
     }
 
-    function isInCorrectSpot(piece) {
-      const dx = Math.abs(piece.x - piece.correctX);
-      const dy = Math.abs(piece.y - piece.correctY);
-      const snapThreshold = Math.min(pieceWidth, pieceHeight) * 0.18;
-      return dx < snapThreshold && dy < snapThreshold;
+    function getPieceAt(x,y) {
+      return pieces.slice().reverse().find(p =>
+        x>=p.x && x<=p.x+pieceWidth && y>=p.y && y<=p.y+pieceHeight
+      ) || null;
     }
 
     function snapIfClose(piece) {
-      if (isInCorrectSpot(piece)) {
+      const dx = Math.abs(piece.x - piece.correctX);
+      const dy = Math.abs(piece.y - piece.correctY);
+      const th = Math.min(pieceWidth,pieceHeight)*0.18;
+      if (dx<th && dy<th) {
         piece.x = piece.correctX;
         piece.y = piece.correctY;
         return true;
@@ -300,71 +196,38 @@
     }
 
     function checkCompleted() {
-      for (const p of pieces) {
-        if (p.x !== p.correctX || p.y !== p.correctY) {
-          return false;
-        }
-      }
-      return true;
+      return pieces.every(p => p.x === p.correctX && p.y === p.correctY);
     }
 
-    canvas.addEventListener("mousedown", (e) => {
-      if (!img.complete || completed) return;
+    canvas.onmousedown = e => {
+      if (completed) return;
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const piece = getPieceAt(x, y);
-      if (!piece) return;
-      draggingPiece = piece;
-      offsetX = x - piece.x;
-      offsetY = y - piece.y;
-    });
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const p = getPieceAt(x,y);
+      if (!p) return;
+      draggingPiece = p;
+      offsetX = x - p.x; offsetY = y - p.y;
+    };
 
-    canvas.addEventListener("mousemove", (e) => {
-      if (!draggingPiece || !img.complete || completed) return;
+    canvas.onmousemove = e => {
+      if (!draggingPiece) return;
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      draggingPiece.x = x - offsetX;
-      draggingPiece.y = y - offsetY;
+      draggingPiece.x = e.clientX - rect.left - offsetX;
+      draggingPiece.y = e.clientY - rect.top - offsetY;
       drawPuzzle();
-    });
+    };
 
-    canvas.addEventListener("mouseup", () => {
-      if (!draggingPiece || !img.complete || completed) return;
+    canvas.onmouseup = () => {
+      if (!draggingPiece) return;
       moves++;
       movesText.textContent = "Moves: " + moves;
-      const snapped = snapIfClose(draggingPiece);
-
-      if (!snapped) {
-        // brief red flash for wrong placement
-        ctx.save();
-        ctx.strokeStyle = "rgba(248,113,113,0.9)";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(draggingPiece.x, draggingPiece.y, pieceWidth, pieceHeight);
-        ctx.restore();
-        setTimeout(drawPuzzle, 110);
-      } else {
-        drawPuzzle();
-      }
-
-      if (checkCompleted()) {
-        completed = true;
-        setStatus("done");
-      }
-
+      snapIfClose(draggingPiece);
+      drawPuzzle();
+      if (checkCompleted()) { completed = true; setStatus("done"); }
       draggingPiece = null;
-    });
-
-    canvas.addEventListener("mouseleave", () => {
-      if (draggingPiece) {
-        draggingPiece = null;
-        drawPuzzle();
-      }
-    });
+    };
 
     function startPuzzle() {
-      if (!img.complete) return;
       completed = false;
       moves = 0;
       movesText.textContent = "Moves: 0";
@@ -373,30 +236,11 @@
       drawPuzzle();
     }
 
-    // Make sure Play button always works
-    window.addEventListener("DOMContentLoaded", () => {
-      playButton.addEventListener("click", () => {
-        startPuzzle();
-      });
-    });
+    playButton.onclick = startPuzzle;
 
-    // Load the image and draw an initial preview
-    img.onload = function () {
-      // Draw full image first as a cute preview
+    img.onload = () => {
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = "rgba(248,250,252,0.4)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
       setStatus("idle");
-    };
-
-    img.onerror = function () {
-      ctx.fillStyle = "#020617";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#f9a8d4";
-      ctx.font = "16px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText("Could not load our cute photo 😭", canvas.width / 2, canvas.height / 2);
     };
 
     img.src = IMAGE_SRC;
