@@ -1,586 +1,670 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Happy Anniversary Puzzle</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      background: #111;
-      color: #fdf2f8;
-      font-family: system-ui, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .frame {
-      background: #0b0b10;
-      border-radius: 24px;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.05),
-                  0 20px 60px rgba(0,0,0,0.9);
-      padding: 32px 40px;
-      max-width: 960px;
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 32px;
-    }
-
-    .left {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 16px;
-    }
-
-    .title { font-size: 28px; font-weight: 700; }
-    .subtitle { font-size: 14px; opacity: 0.9; line-height: 1.5; }
-
-    .play-btn {
-      margin-top: 12px; padding: 10px 24px;
-      border-radius: 999px; border: none;
-      cursor: pointer; font-weight: 600; font-size: 14px;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      background: radial-gradient(circle at 0 0, #fb7185, #db2777);
-      color: #fff;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.06),
-                  0 8px 24px rgba(248,113,113,0.5);
-    }
-
-    .right {
-      background: radial-gradient(circle at 0 0, rgba(248,113,113,0.35), transparent 55%),
-                  radial-gradient(circle at 100% 100%, rgba(147,197,253,0.35), transparent 60%),
-                  #050509;
-      border-radius: 20px; position: relative; padding: 16px;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-    }
-
-    canvas {
-      border-radius: 16px; background: #020617;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.03),
-                  0 24px 60px rgba(15,23,42,0.95);
-      max-width: 100%;
-    }
-
-    .status {
-      position: absolute; bottom: 14px; left: 16px; right: 16px;
-      display: flex; justify-content: space-between;
-      font-size: 11px; letter-spacing: 0.08em; opacity: 0.85;
-      text-transform: uppercase;
-    }
-
-    .status-dot {
-      width: 7px; height: 7px; border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 0 5px rgba(34,197,94,0.18);
-    }
-    .status-dot.done {
-      background: #fb7185;
-      box-shadow: 0 0 0 5px rgba(248,113,113,0.24);
-    }
-  </style>
-</head>
-
-<body>
-  <div class="frame">
-    <div class="left">
-      <div style="font-size:11px;opacity:.7;letter-spacing:.14em;text-transform:uppercase;">
-        Happy Anniversary, my silly bun bun 💕
-      </div>
-      <div class="title">A tiny puzzle for a huge love</div>
-
-      <div class="subtitle">
-        Solve this little jigsaw to reveal one of my favourite photos of us.
-      </div>
-
-      <button id="playButton" class="play-btn">Play</button>
-
-      <div class="how-to" style="font-size:12px;opacity:.9;line-height:1.6;margin-top:10px;">
-        • Click Play to start <br>
-        • Drag pieces to move them<br>
-        • They snap when close to correct position
-      </div>
-    </div>
-
-    <div class="right">
-      <canvas id="puzzleCanvas" width="480" height="360"></canvas>
-      <div class="status">
-        <span><span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Waiting to play</span></span>
-        <span id="movesText">Moves: 0</span>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const PUZZLE_ROWS = 6;
-    const PUZZLE_COLS = 6;
-    
-    /* ✅ Embedded Base64 Image (your uploaded picture) */
-    const IMAGE_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAiQAAAErCAIAAABhLw9vAAAQAElEQVR4Aez999c...yud0ehfmf1J54x29kgiBRIg4QTCdL/+8c91VZUZ+4nMuve5j3tNd4NGQrzfioqM";
-
-    const canvas = document.getElementById("puzzleCanvas");
-    const ctx = canvas.getContext("2d");
-    const playButton = document.getElementById("playButton");
-    const statusDot = document.getElementById("statusDot");
-    const statusText = document.getElementById("statusText");
-    const movesText = document.getElementById("movesText");
-
-    let img = new Image();
-    let pieces = [];
-    let pieceWidth, pieceHeight;
-    let draggingPiece = null;
-    let offsetX = 0, offsetY = 0;
-    let moves = 0, completed = false;
-
-    function setStatus(state) {
-      statusDot.classList.remove("done");
-      if (state === "idle") statusText.textContent = "Waiting to play";
-      if (state === "playing") statusText.textContent = "Solving together";
-      if (state === "done") {
-        statusText.textContent = "Puzzle complete ❤️";
-        statusDot.classList.add("done");
-      }
-    }
-
-    function initPieces() {
-      pieces = [];
-      pieceWidth = canvas.width / PUZZLE_COLS;
-      pieceHeight = canvas.height / PUZZLE_ROWS;
-
-      for (let r = 0; r < PUZZLE_ROWS; r++) {
-        for (let c = 0; c < PUZZLE_COLS; c++) {
-          pieces.push({
-            correctX: c * pieceWidth,
-            correctY: r * pieceHeight,
-            x: c * pieceWidth,
-            y: r * pieceHeight
-          });
-        }
-      }
-
-      for (let i = pieces.length - 1; i > 0; i--) {
-        const j = Math.random() * (i + 1) | 0;
-        [pieces[i].x, pieces[j].x] = [pieces[j].x, pieces[i].x];
-        [pieces[i].y, pieces[j].y] = [pieces[j].y, pieces[i].y];
-      }
-    }
-
-    function drawPuzzle() {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      for (const p of pieces) {
-        ctx.drawImage(img, p.correctX, p.correctY, pieceWidth, pieceHeight,
-                           p.x, p.y, pieceWidth, pieceHeight);
-      }
-    }
-
-    function getPieceAt(x,y) {
-      return pieces.slice().reverse().find(p =>
-        x>=p.x && x<=p.x+pieceWidth && y>=p.y && y<=p.y+pieceHeight
-      ) || null;
-    }
-
-    function snapIfClose(piece) {
-      const dx = Math.abs(piece.x - piece.correctX);
-      const dy = Math.abs(piece.y - piece.correctY);
-      const th = Math.min(pieceWidth,pieceHeight)*0.18;
-      if (dx<th && dy<th) {
-        piece.x = piece.correctX;
-        piece.y = piece.correctY;
-        return true;
-      }
-      return false;
-    }
-
-    function checkCompleted() {
-      return pieces.every(p => p.x === p.correctX && p.y === p.correctY);
-    }
-
-    canvas.onmousedown = e => {
-      if (completed) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left, y = e.clientY - rect.top;
-      const p = getPieceAt(x,y);
-      if (!p) return;
-      draggingPiece = p;
-      offsetX = x - p.x; offsetY = y - p.y;
-    };
-
-    canvas.onmousemove = e => {
-      if (!draggingPiece) return;
-      const rect = canvas.getBoundingClientRect();
-      draggingPiece.x = e.clientX - rect.left - offsetX;
-      draggingPiece.y = e.clientY - rect.top - offsetY;
-      drawPuzzle();
-    };
-
-    canvas.onmouseup = () => {
-      if (!draggingPiece) return;
-      moves++;
-      movesText.textContent = "Moves: " + moves;
-      snapIfClose(draggingPiece);
-      drawPuzzle();
-      if (checkCompleted()) { completed = true; setStatus("done"); }
-      draggingPiece = null;
-    };
-
-    function startPuzzle() {
-      completed = false;
-      moves = 0;
-      movesText.textContent = "Moves: 0";
-      setStatus("playing");
-      initPieces();
-      drawPuzzle();
-    }
-
-    playButton.onclick = startPuzzle;
-
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      setStatus("idle");
-    };
-
-    img.src = IMAGE_SRC;
-  </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Happy Anniversary Puzzle — Fixed</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Puzzle Gift</title>
 <style>
-  body{margin:0;background:#090912;color:#fff;font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial;}
-  .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px}
-  .frame{background:#0b0b10;border-radius:18px;padding:28px;max-width:1200px;width:100%;display:grid;grid-template-columns:1fr 760px;gap:28px;box-shadow:0 30px 80px rgba(0,0,0,0.8)}
-  .left{display:flex;flex-direction:column;gap:12px;justify-content:center}
-  .eyebrow{font-size:11px;opacity:.8;letter-spacing:.12em;text-transform:uppercase}
-  .title{font-size:34px;font-weight:800;margin-top:6px}
-  .subtitle{opacity:.9;color:#e6e7ea}
-  .controls-row{display:flex;gap:12px;margin-top:10px}
-  .btn{background:linear-gradient(90deg,#fb7185,#db2777);border:none;color:#fff;padding:14px 28px;border-radius:999px;font-weight:700;cursor:pointer;box-shadow:0 14px 48px rgba(219,39,119,0.12)}
-  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px 16px;border-radius:10px;box-shadow:none}
-  .hint{font-size:13px;color:#9ca3af;margin-top:8px;line-height:1.5}
-  .right{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent), #050509;border-radius:14px;padding:18px;position:relative;display:flex;align-items:center;justify-content:center}
-  canvas{border-radius:12px;background:#020617;display:block;max-width:100%}
-  .status{position:absolute;left:16px;right:16px;bottom:12px;display:flex;justify-content:space-between;align-items:center;color:#cbd5e1;font-size:12px}
-  .status-dot{width:8px;height:8px;border-radius:999px;background:#22c55e;box-shadow:0 0 0 6px rgba(34,197,94,0.12)}
-  .status-dot.done{background:#fb7185;box-shadow:0 0 0 6px rgba(251,113,133,0.12)}
-  @media(max-width:1100px){.frame{grid-template-columns:1fr 520px}}
-  @media(max-width:760px){.frame{grid-template-columns:1fr;gap:18px}.right{order:-1}}
+:root{
+  --bg1:#ffd6ec; --bg2:#d6f0ff; --accent:#e60073; --accent-soft:#ff80bf;
+  --card:#fff; --rose-border:#ffe0ef; --text:#444;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:Inter, "Segoe UI", system-ui, sans-serif;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  color:var(--text);
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px;
+  overflow-x:hidden;
+}
+
+/* UI CONTAINERS */
+.app-container{
+  width:100%; max-width:960px;
+  background:var(--card); border-radius:20px;
+  border:4px solid var(--rose-border);
+  box-shadow:0 14px 40px rgba(0,0,0,0.12);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  transition: all 0.3s ease;
+}
+
+.header{
+  padding:20px; border-bottom:2px solid var(--rose-border);
+  display:flex; justify-content:space-between; align-items:center;
+  background:#fffafc;
+}
+.title{color:var(--accent); font-size:1.5rem; margin:0; font-weight:800;}
+.subtitle{font-size:0.9rem; color:#888; margin-top:4px;}
+
+/* CREATOR MODE */
+#creator-view { padding: 40px; text-align:center; }
+.upload-box {
+  border: 3px dashed var(--accent-soft);
+  background: #fff0f7;
+  border-radius: 16px;
+  padding: 40px;
+  margin: 20px auto;
+  max-width: 500px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.upload-box:hover { background: #ffe6f2; transform:scale(1.02); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent));
+  color: white; border: none; padding: 12px 24px;
+  border-radius: 50px; font-size: 1rem; font-weight: bold;
+  cursor: pointer; box-shadow: 0 4px 15px rgba(230, 0, 115, 0.3);
+  transition: transform 0.2s;
+}
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform:none; }
+
+/* GAME VIEW */
+#game-view { display:none; padding:20px; }
+.game-layout { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
+
+.board-container {
+  background: #fff;
+  border: 2px solid var(--rose-border);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+#board {
+  position: relative;
+  background-color: #f0f0f0; /* Simple grey table color */
+  border-radius: 4px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+  margin: 0 auto;
+}
+
+.controls {
+  flex: 1; min-width: 250px; max-width: 300px;
+  background: #fffcfd; padding: 20px; border-radius: 16px;
+  border: 1px solid var(--rose-border);
+}
+.stat-box {
+  background: white; border: 1px solid #eee;
+  padding: 10px; border-radius: 8px; margin-bottom: 10px;
+  display:flex; justify-content:space-between;
+}
+.stat-label { font-size:0.85rem; color:#888; text-transform:uppercase; letter-spacing:1px; }
+.stat-value { font-weight:bold; color:var(--accent); }
+.control-btn {
+  width: 100%; padding: 10px; margin-top: 10px;
+  border: 1px solid #eee; background: white;
+  border-radius: 8px; cursor: pointer; color: #555;
+  font-weight: 600; transition: all 0.2s;
+}
+.control-btn:hover { background: #f9f9f9; color: var(--accent); }
+
+/* PIECES (CANVAS) */
+.piece-canvas {
+  position: absolute;
+  cursor: grab;
+  transform: translate3d(0,0,0); 
+  z-index: 10;
+  filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.2));
+  transition: transform 0.1s;
+  touch-action: none;
+}
+.piece-canvas.dragging {
+  cursor: grabbing;
+  z-index: 1000;
+  transform: scale(1.05);
+  filter: drop-shadow(5px 10px 10px rgba(0,0,0,0.3));
+  transition: none;
+}
+.piece-canvas.correct {
+  z-index: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 0 0 rgba(0,0,0,0)); /* Remove shadow when snapped */
+  transition: all 0.3s ease;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.modal-overlay.active { opacity: 1; pointer-events: all; }
+.modal-card {
+  background: white; padding: 40px; border-radius: 20px;
+  text-align: center; max-width: 90%; width: 400px;
+  border: 4px solid var(--rose-border);
+  box-shadow: 0 20px 60px rgba(230,0,115,0.2);
+  transform: translateY(20px); transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-overlay.active .modal-card { transform: translateY(0); }
+
+@media(max-width: 768px) {
+  .app-container { border-width:0; border-radius:0; height:100vh; box-shadow:none; }
+  .header { padding: 15px; }
+  .controls { width: 100%; max-width: none; order: -1; margin-bottom: 20px; }
+  #board { max-width: 100%; }
+}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="frame">
-      <div class="left">
-        <div class="eyebrow">Happy Anniversary, my silly bun bun 💕</div>
-        <div class="title">A tiny puzzle for a huge love</div>
-        <div class="subtitle">Solve this little jigsaw to reveal one of my favourite photos of us.</div>
 
-        <div class="controls-row">
-          <button id="playButton" class="btn">Play</button>
-          <button id="restartButton" class="btn ghost">Restart</button>
-          <button id="solveButton" class="btn ghost">Skip to Solved</button>
-        </div>
+<div class="app-container">
+  <div class="header">
+    <div>
+      <h1 class="title" id="app-title">Anniversary Puzzle</h1>
+      <div class="subtitle" id="app-subtitle">A special surprise for you ❤️</div>
+    </div>
+    <div style="font-size:1.5rem">🧩</div>
+  </div>
 
-        <div class="hint">• Click Play to start • Drag pieces to move them • They snap when close to the correct position</div>
+  <!-- CREATOR MODE -->
+  <div id="creator-view">
+    <h2>Create Your Gift</h2>
+    <p style="color:#666; margin-bottom:30px;">
+      Upload the photo to generate the puzzle app.<br>
+      (Clean version: No background image hint!)
+    </p>
+
+    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:3rem; margin-bottom:10px;">📸</div>
+      <div style="font-weight:bold; color:var(--accent)">Click to Select Photo</div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+    </div>
+    
+    <div style="margin: 20px 0; text-align: left; max-width: 500px; margin: 20px auto;">
+        <label style="font-size:0.9rem; font-weight:bold; color:#555">Custom Title:</label>
+        <input type="text" id="customTitle" placeholder="e.g. Happy Anniversary!" 
+               style="width:100%; padding:10px; margin-top:5px; border:2px solid #eee; border-radius:8px; font-size:1rem;">
+    </div>
+
+    <button id="generateBtn" class="btn-primary" disabled onclick="generateGiftFile()">
+      Download Gift File 🎁
+    </button>
+    <p id="statusMsg" style="margin-top:15px; font-size:0.9rem; color:var(--accent);"></p>
+  </div>
+
+  <!-- GAME MODE -->
+  <div id="game-view">
+    <div class="game-layout">
+      <div class="board-container">
+        <div id="board"></div>
       </div>
 
-      <div class="right">
-        <!-- Bigger canvas, 960x720 logical pixels -->
-        <canvas id="puzzleCanvas" width="960" height="720" style="width:960px;height:720px"></canvas>
-        <div class="status">
-          <div><span id="statusDot" class="status-dot"></span>&nbsp;<span id="statusText">Waiting to play</span></div>
-          <div id="movesText">Moves: 0</div>
+      <div class="controls">
+        <div class="stat-box">
+          <span class="stat-label">Pieces</span>
+          <span class="stat-value"><span id="score">0</span> / <span id="total">0</span></span>
         </div>
+        <div class="stat-box">
+          <span class="stat-label">Time</span>
+          <span class="stat-value" id="timer">00:00</span>
+        </div>
+        <div style="margin-top:20px;">
+            <p style="font-size:0.85rem; color:#666; line-height:1.5;">
+                <strong>How to play:</strong><br>
+                Drag the pieces to connect them. They will snap together when close!
+            </p>
+        </div>
+        <button class="control-btn" onclick="shufflePieces()">Reshuffle Pieces</button>
+        <button class="control-btn" onclick="cheatSolve()" style="font-size:0.8rem; opacity:0.5">Auto-Solve</button>
       </div>
     </div>
   </div>
+</div>
+
+<div class="modal-overlay" id="winModal">
+  <div class="modal-card">
+    <div style="font-size:4rem; margin-bottom:10px;">🎉</div>
+    <h2 style="color:var(--accent); margin:0;">Puzzle Solved!</h2>
+    <p style="color:#555; margin:15px 0;">Happy Anniversary! You found the hidden memory.</p>
+    <button class="btn-primary" onclick="closeModal()">Keep Admiring</button>
+  </div>
+</div>
 
 <script>
-/* ================== CONFIG ================== */
-const PUZZLE_ROWS = 6;
-const PUZZLE_COLS = 6;
+// ==========================================
+// CONFIGURATION
+// ==========================================
+const EMBEDDED_IMAGE_DATA = ""; 
+const EMBEDDED_TITLE = "";
 
-/* ========= PUT BASE64 HERE =========
-   Replace <<PASTE_BASE64_IMAGE_HERE>> (without the angle brackets) with the full base64 string from b64.txt
-   Example after replace:
-   const IMAGE_SRC = "data:image/png;base64,iVBORw0K...verylongstring...";
-*/
-const IMAGE_SRC = "data:image/png;base64,<<PASTE_BASE64_IMAGE_HERE>>";
+const ROWS = 6;
+const COLS = 6; 
+let PIECE_W = 0;
+let PIECE_H = 0;
+let BOARD_W = 0;
+let BOARD_H = 0;
 
-/* ============== UI references ============== */
-const canvas = document.getElementById('puzzleCanvas');
-const ctx = canvas.getContext('2d');
-const playButton = document.getElementById('playButton');
-const restartButton = document.getElementById('restartButton');
-const solveButton = document.getElementById('solveButton');
-const statusDot = document.getElementById('statusDot');
-const statusText = document.getElementById('statusText');
-const movesText = document.getElementById('movesText');
+let pieces = [];
+let zIndexCounter = 100;
+let placedCount = 0;
+let timerInterval;
+let startTime;
+let loadedImage = null;
 
-let img = new Image();
-let pieces = []; // pieces array
-let pieceW, pieceH;
-let dragging = null;
-let offsetX = 0, offsetY = 0;
-let moves = 0;
-let completed = false;
+// Shapes Array [ROWS][COLS]
+let shapes = [];
 
-/* set status */
-function setStatus(s){
-  statusDot.classList.remove('done');
-  if(s==='idle') statusText.textContent = 'Waiting to play';
-  else if(s==='playing') statusText.textContent = 'Solving together';
-  else if(s==='done'){ statusText.textContent = 'Puzzle complete ❤️'; statusDot.classList.add('done'); }
-}
-
-/* create pieces and shuffle */
-function initPieces(){
-  pieces = [];
-  // use logical canvas sizes (style width/height) for piece math
-  const logicalW = canvas.clientWidth;
-  const logicalH = canvas.clientHeight;
-  pieceW = logicalW / PUZZLE_COLS;
-  pieceH = logicalH / PUZZLE_ROWS;
-
-  for(let r=0; r<PUZZLE_ROWS; r++){
-    for(let c=0; c<PUZZLE_COLS; c++){
-      pieces.push({
-        r,c,
-        correctX: c*pieceW,
-        correctY: r*pieceH,
-        x: c*pieceW,
-        y: r*pieceH,
-        w: pieceW,
-        h: pieceH,
-        placed: false
-      });
+window.onload = function() {
+    if (EMBEDDED_IMAGE_DATA.length > 100) {
+        document.getElementById('creator-view').style.display = 'none';
+        document.getElementById('game-view').style.display = 'block';
+        if(EMBEDDED_TITLE) {
+            document.getElementById('app-title').textContent = EMBEDDED_TITLE;
+            document.title = EMBEDDED_TITLE;
+        }
+        initGame(EMBEDDED_IMAGE_DATA);
+    } else {
+        document.getElementById('creator-view').style.display = 'block';
     }
-  }
-
-  // shuffle
-  for(let i=pieces.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [pieces[i].x, pieces[j].x] = [pieces[j].x, pieces[i].x];
-    [pieces[i].y, pieces[j].y] = [pieces[j].y, pieces[i].y];
-  }
-}
-
-/* draw a puzzle-piece shaped clip for a piece, then draw its image */
-function drawPiece(p, highlight=false){
-  const x = p.x, y = p.y, w = p.w, h = p.h;
-  const bump = Math.min(w,h) * 0.15;
-  const neck = bump * 0.6;
-
-  ctx.save();
-  ctx.beginPath();
-  // Top edge (straight with small center bump)
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + w*0.5 - neck, y);
-  // small semicircle bump
-  ctx.bezierCurveTo(x + w*0.5 - neck/2, y - bump, x + w*0.5 + neck/2, y - bump, x + w*0.5 + neck, y);
-  ctx.lineTo(x + w, y);
-  // right edge
-  ctx.lineTo(x + w, y + h*0.5 - neck);
-  ctx.bezierCurveTo(x + w + bump, y + h*0.5 - neck/2, x + w + bump, y + h*0.5 + neck/2, x + w, y + h*0.5 + neck);
-  ctx.lineTo(x + w, y + h);
-  // bottom edge
-  ctx.lineTo(x + w*0.5 + neck, y + h);
-  ctx.bezierCurveTo(x + w*0.5 + neck/2, y + h + bump, x + w*0.5 - neck/2, y + h + bump, x + w*0.5 - neck, y + h);
-  ctx.lineTo(x, y + h);
-  // left edge
-  ctx.lineTo(x, y + h*0.5 + neck);
-  ctx.bezierCurveTo(x - bump, y + h*0.5 + neck/2, x - bump, y + h*0.5 - neck/2, x, y + h*0.5 - neck);
-  ctx.closePath();
-
-  // clip and draw the correct portion of the image
-  ctx.clip();
-  ctx.drawImage(img, p.correctX, p.correctY, p.w, p.h, p.x, p.y, p.w, p.h);
-  ctx.restore();
-
-  // draw border
-  ctx.beginPath();
-  ctx.rect(p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1);
-  ctx.strokeStyle = highlight ? 'rgba(248,113,113,0.95)' : 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = highlight ? 3 : 1;
-  ctx.stroke();
-}
-
-/* redraw everything (draw pieces in order so top pieces appear last) */
-function drawAll(){
-  // clear using display logical dims
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // set transform so 1 logical px = 1 canvas CSS px (handle devicePixelRatio)
-  // but the canvas is already sized in CSS; we will use ctx with CSS pixels.
-
-  for(const p of pieces){
-    drawPiece(p);
-  }
-  if(dragging){
-    // draw dragging piece on top with highlight
-    drawPiece(dragging, true);
-  }
-}
-
-/* get topmost piece under pointer */
-function getPieceAt(x,y){
-  for(let i=pieces.length-1;i>=0;i--){
-    const p = pieces[i];
-    if(x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) return {p,i};
-  }
-  return null;
-}
-
-/* snap */
-function snapIfClose(p){
-  const dx = Math.abs(p.x - p.correctX);
-  const dy = Math.abs(p.y - p.correctY);
-  const threshold = Math.min(p.w, p.h) * 0.18;
-  if(dx < threshold && dy < threshold){
-    p.x = p.correctX; p.y = p.correctY; p.placed = true;
-    return true;
-  }
-  return false;
-}
-
-/* check complete */
-function checkComplete(){
-  return pieces.every(p => Math.abs(p.x - p.correctX) < 1 && Math.abs(p.y - p.correctY) < 1);
-}
-
-/* event handling: mouse & touch */
-canvas.addEventListener('mousedown', (e) => {
-  if(completed) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left, y = e.clientY - rect.top;
-  const found = getPieceAt(x,y);
-  if(!found) return;
-  const {p, i} = found;
-  // bring to top: remove and push to end
-  pieces.splice(i,1);
-  pieces.push(p);
-  dragging = p;
-  offsetX = x - p.x; offsetY = y - p.y;
-  drawAll();
-});
-
-window.addEventListener('mousemove', (e) => {
-  if(!dragging) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left, y = e.clientY - rect.top;
-  dragging.x = x - offsetX; dragging.y = y - offsetY;
-  drawAll();
-});
-
-window.addEventListener('mouseup', () => {
-  if(!dragging) return;
-  moves++; movesText.textContent = 'Moves: ' + moves;
-  const snapped = snapIfClose(dragging);
-  if(!snapped){
-    // quick red flash
-    ctx.save();
-    ctx.strokeStyle = 'rgba(248,113,113,0.95)';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(dragging.x, dragging.y, dragging.w, dragging.h);
-    ctx.restore();
-    setTimeout(drawAll, 120);
-  } else {
-    drawAll();
-  }
-  if(checkComplete()){ completed = true; setStatus('done'); }
-  dragging = null;
-});
-
-/* touch support */
-canvas.addEventListener('touchstart', (ev) => {
-  ev.preventDefault();
-  if(completed) return;
-  const t = ev.changedTouches[0];
-  const rect = canvas.getBoundingClientRect();
-  const x = t.clientX - rect.left, y = t.clientY - rect.top;
-  const found = getPieceAt(x,y);
-  if(!found) return;
-  const {p,i} = found;
-  pieces.splice(i,1); pieces.push(p);
-  dragging = p;
-  offsetX = x - p.x; offsetY = y - p.y;
-  drawAll();
-}, {passive:false});
-
-canvas.addEventListener('touchmove', (ev) => {
-  ev.preventDefault();
-  if(!dragging) return;
-  const t = ev.changedTouches[0];
-  const rect = canvas.getBoundingClientRect();
-  const x = t.clientX - rect.left, y = t.clientY - rect.top;
-  dragging.x = x - offsetX; dragging.y = y - offsetY;
-  drawAll();
-}, {passive:false});
-
-canvas.addEventListener('touchend', (ev) => {
-  ev.preventDefault();
-  if(!dragging) return;
-  moves++; movesText.textContent = 'Moves: ' + moves;
-  snapIfClose(dragging);
-  if(checkComplete()){ completed = true; setStatus('done'); }
-  dragging = null;
-}, {passive:false});
-
-/* Controls */
-function startPuzzle(){
-  completed = false; moves = 0; movesText.textContent = 'Moves: 0';
-  setStatus('playing');
-  initPieces();
-  drawAll();
-}
-function restartPuzzle(){
-  startPuzzle();
-  setStatus('idle');
-}
-function skipToSolved(){
-  for(const p of pieces){ p.x = p.correctX; p.y = p.correctY; }
-  movesText.textContent = 'Moves: ' + moves;
-  completed = true; setStatus('done'); drawAll();
-}
-
-playButton.addEventListener('click', startPuzzle);
-restartButton.addEventListener('click', restartPuzzle);
-solveButton.addEventListener('click', skipToSolved);
-
-/* Image loading and canvas scaling for crispness */
-img.onload = function(){
-  // Ensure canvas CSS size is used for layout. We use CSS pixels for math.
-  // Draw a low-opacity preview
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.save();
-  ctx.globalAlpha = 0.06;
-  // draw at CSS width/height for preview
-  ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight);
-  ctx.restore();
-  setStatus('idle');
-  // initialize pieces (but do not auto-start)
-  // initPieces is called on Play to ensure shuffle occurs each time
 };
 
-/* Handle image load error */
-img.onerror = function(){
-  ctx.fillStyle = '#020617';
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = '#f9a8d4';
-  ctx.font = '18px system-ui';
-  ctx.textAlign = 'center';
-  ctx.fillText('Could not load image', canvas.clientWidth/2, canvas.clientHeight/2);
-};
+// ==========================================
+// CREATOR LOGIC
+// ==========================================
+let uploadedImageBase64 = "";
 
-/* set image src (after user replaced the placeholder) */
-img.src = IMAGE_SRC;
+function handleFileSelect(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            uploadedImageBase64 = e.target.result;
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('statusMsg').textContent = "Photo loaded!";
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function generateGiftFile() {
+    const btn = document.getElementById('generateBtn');
+    btn.textContent = "Generating...";
+    btn.disabled = true;
+
+    const title = document.getElementById('customTitle').value || "Happy Anniversary";
+    const currentHTML = document.documentElement.outerHTML;
+    const newHTML = currentHTML
+        .replace('const EMBEDDED_IMAGE_DATA = "";', `const EMBEDDED_IMAGE_DATA = "${uploadedImageBase64}";`)
+        .replace('const EMBEDDED_TITLE = "";', `const EMBEDDED_TITLE = "${title.replace(/"/g, '\\"')}";`);
+
+    const blob = new Blob([newHTML], {type: 'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'puzzle-for-her.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    btn.textContent = "Downloaded!";
+    document.getElementById('statusMsg').textContent = "File downloaded! Send it to her.";
+}
+
+// ==========================================
+// JIGSAW SHAPE GENERATION
+// ==========================================
+function generateShapes() {
+    shapes = [];
+    for (let r = 0; r < ROWS; r++) {
+        let rowShapes = [];
+        for (let c = 0; c < COLS; c++) {
+            let shape = { top: 0, right: 0, bottom: 0, left: 0 };
+            
+            // Top: inverse of upper neighbor's bottom
+            if (r === 0) shape.top = 0;
+            else shape.top = -shapes[r-1][c].bottom;
+            
+            // Bottom: random (unless last row)
+            if (r === ROWS - 1) shape.bottom = 0;
+            else shape.bottom = Math.random() > 0.5 ? 1 : -1;
+            
+            // Left: inverse of left neighbor's right
+            if (c === 0) shape.left = 0;
+            else shape.left = -rowShapes[c-1].right;
+            
+            // Right: random (unless last col)
+            if (c === COLS - 1) shape.right = 0;
+            else shape.right = Math.random() > 0.5 ? 1 : -1;
+            
+            rowShapes.push(shape);
+        }
+        shapes.push(rowShapes);
+    }
+}
+
+function drawJigsawPath(ctx, w, h, shape) {
+    const tabSize = Math.min(w, h) * 0.22; 
+    const neck = tabSize * 0.45;
+    
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+
+    // Top
+    if (shape.top !== 0) {
+        drawSide(ctx, w, 0, shape.top, tabSize, neck, false);
+    } else {
+        ctx.lineTo(w, 0);
+    }
+
+    // Right
+    if (shape.right !== 0) {
+        drawSide(ctx, h, w, shape.right, tabSize, neck, true);
+    } else {
+        ctx.lineTo(w, h);
+    }
+
+    // Bottom
+    if (shape.bottom !== 0) {
+        drawSide(ctx, w, h, shape.bottom, tabSize, neck, false, true);
+    } else {
+        ctx.lineTo(0, h);
+    }
+
+    // Left
+    if (shape.left !== 0) {
+        drawSide(ctx, h, 0, shape.left, tabSize, neck, true, true);
+    } else {
+        ctx.lineTo(0, 0);
+    }
+    
+    ctx.closePath();
+}
+
+function drawSide(ctx, len, offset, type, tabSize, neck, vertical, reverse) {
+    const mid = len / 2;
+    const sign = type; 
+    
+    // Points for a standard puzzle tab shape
+    const pts = [
+        {x: mid - neck, y: 0},
+        {x: mid - neck, y: sign * tabSize}, 
+        {x: mid - tabSize, y: sign * tabSize}, 
+        {x: mid, y: sign * tabSize * 1.5}, 
+        {x: mid + tabSize, y: sign * tabSize}, 
+        {x: mid + neck, y: sign * tabSize}, 
+        {x: mid + neck, y: 0},
+        {x: len, y: 0}
+    ];
+
+    function map(px, py) {
+        let rx, ry;
+        if (!vertical && !reverse) { 
+            rx = px; ry = py + offset;
+        } else if (vertical && !reverse) { 
+            rx = offset + py; ry = px; 
+        } else if (!vertical && reverse) { 
+            rx = len - px; ry = offset - py; 
+        } else if (vertical && reverse) { 
+            rx = offset - py; ry = len - px; 
+        }
+        return {x: rx, y: ry};
+    }
+    
+    const p1 = map(pts[0].x, pts[0].y);
+    ctx.lineTo(p1.x, p1.y);
+    
+    const m1 = map(pts[1].x, pts[1].y);
+    const m2 = map(pts[2].x, pts[2].y);
+    const tip = map(pts[3].x, pts[3].y);
+    const m4 = map(pts[4].x, pts[4].y);
+    const m5 = map(pts[5].x, pts[5].y);
+    const dest = map(pts[6].x, pts[6].y);
+    const final = map(pts[7].x, pts[7].y);
+    
+    ctx.bezierCurveTo(m1.x, m1.y, m2.x, m2.y, tip.x, tip.y);
+    ctx.bezierCurveTo(m4.x, m4.y, m5.x, m5.y, dest.x, dest.y);
+    
+    ctx.lineTo(final.x, final.y);
+}
+
+
+// ==========================================
+// GAME INIT
+// ==========================================
+function initGame(base64Data) {
+    const img = new Image();
+    img.onload = function() {
+        loadedImage = img;
+        setupBoard(img);
+        generateShapes();
+        createCanvasPieces();
+        startTimer();
+    };
+    img.src = base64Data;
+}
+
+function setupBoard(img) {
+    const aspectRatio = img.width / img.height;
+    let maxW = Math.min(window.innerWidth - 30, 800); 
+    let maxH = Math.min(window.innerHeight - 220, 600);
+    
+    if ((maxW / maxH) > aspectRatio) {
+        BOARD_H = maxH; BOARD_W = maxH * aspectRatio;
+    } else {
+        BOARD_W = maxW; BOARD_H = maxW / aspectRatio;
+    }
+
+    PIECE_W = BOARD_W / COLS;
+    PIECE_H = BOARD_H / ROWS;
+
+    const board = document.getElementById('board');
+    board.style.width = BOARD_W + 'px';
+    board.style.height = BOARD_H + 'px';
+    // Removed backgroundImage property here
+    
+    document.getElementById('total').textContent = ROWS * COLS;
+}
+
+function createCanvasPieces() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    pieces = [];
+    placedCount = 0;
+    document.getElementById('score').textContent = "0";
+    
+    const pad = Math.max(PIECE_W, PIECE_H) * 0.3;
+
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const shape = shapes[r][c];
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = PIECE_W + (pad * 2);
+            canvas.height = PIECE_H + (pad * 2);
+            canvas.className = 'piece-canvas';
+            
+            const ctx = canvas.getContext('2d');
+            ctx.translate(pad, pad);
+            
+            // 1. Draw Shape Path
+            drawJigsawPath(ctx, PIECE_W, PIECE_H, shape);
+            
+            // 2. Clip
+            ctx.save();
+            ctx.clip();
+            
+            // 3. Draw Image
+            const srcX = (c * (loadedImage.width / COLS));
+            const srcY = (r * (loadedImage.height / ROWS));
+            const srcW = (loadedImage.width / COLS);
+            const srcH = (loadedImage.height / ROWS);
+            
+            const scaleX = PIECE_W / srcW;
+            const scaleY = PIECE_H / srcH;
+            
+            ctx.drawImage(
+                loadedImage, 
+                srcX - (pad / scaleX), srcY - (pad / scaleY), 
+                srcW + (pad*2 / scaleX), srcH + (pad*2 / scaleY),
+                -pad, -pad, 
+                canvas.width, canvas.height
+            );
+            ctx.restore();
+            
+            // 4. Border
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 5. Bevel
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.2)";
+            ctx.lineWidth = 1;
+            drawJigsawPath(ctx, PIECE_W, PIECE_H, shape); 
+            ctx.stroke();
+
+            canvas.dataset.r = r;
+            canvas.dataset.c = c;
+            canvas.dataset.solved = "false";
+            
+            const randX = Math.random() * (BOARD_W - PIECE_W);
+            const randY = Math.random() * (BOARD_H - PIECE_H);
+            
+            canvas.style.left = (randX - pad) + 'px';
+            canvas.style.top = (randY - pad) + 'px';
+            
+            addDragLogic(canvas, pad);
+            board.appendChild(canvas);
+            pieces.push(canvas);
+        }
+    }
+}
+
+function addDragLogic(el, pad) {
+    let isDragging = false;
+    let startX, startY;
+
+    const onDown = (e) => {
+        if (el.dataset.solved === "true") return;
+        isDragging = true;
+        el.classList.add('dragging');
+        el.style.zIndex = ++zIndexCounter;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const rect = el.getBoundingClientRect();
+        startX = clientX - rect.left;
+        startY = clientY - rect.top;
+        e.preventDefault();
+    };
+
+    const onMove = (e) => {
+        if (!isDragging) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const boardRect = document.getElementById('board').getBoundingClientRect();
+        
+        let newLeft = clientX - boardRect.left - startX;
+        let newTop = clientY - boardRect.top - startY;
+        
+        el.style.left = newLeft + 'px';
+        el.style.top = newTop + 'px';
+    };
+
+    const onUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        el.classList.remove('dragging');
+        checkSnap(el, pad);
+    };
+
+    el.addEventListener('mousedown', onDown);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    el.addEventListener('touchstart', onDown, {passive: false});
+    document.addEventListener('touchmove', onMove, {passive: false});
+    document.addEventListener('touchend', onUp);
+}
+
+function checkSnap(el, pad) {
+    const r = parseInt(el.dataset.r);
+    const c = parseInt(el.dataset.c);
+    
+    const targetX = c * PIECE_W;
+    const targetY = r * PIECE_H;
+    
+    const currentLeft = parseFloat(el.style.left);
+    const currentTop = parseFloat(el.style.top);
+    
+    const visualLeft = currentLeft + pad;
+    const visualTop = currentTop + pad;
+    
+    const tolerance = PIECE_W * 0.3;
+    
+    if (Math.abs(visualLeft - targetX) < tolerance && 
+        Math.abs(visualTop - targetY) < tolerance) {
+        
+        el.style.left = (targetX - pad) + 'px';
+        el.style.top = (targetY - pad) + 'px';
+        el.dataset.solved = "true";
+        el.classList.add('correct');
+        
+        placedCount++;
+        document.getElementById('score').textContent = placedCount;
+        
+        if (placedCount === (ROWS * COLS)) {
+            handleWin();
+        }
+    }
+}
+
+function handleWin() {
+    clearInterval(timerInterval);
+    setTimeout(() => {
+        document.getElementById('winModal').classList.add('active');
+    }, 500);
+}
+
+function shufflePieces() {
+    const pad = Math.max(PIECE_W, PIECE_H) * 0.3;
+    pieces.forEach(p => {
+        if (p.dataset.solved === "true") return;
+        const randX = Math.random() * (BOARD_W - PIECE_W);
+        const randY = Math.random() * (BOARD_H - PIECE_H);
+        p.style.transition = "all 0.4s ease";
+        p.style.left = (randX - pad) + 'px';
+        p.style.top = (randY - pad) + 'px';
+        setTimeout(() => p.style.transition = "none", 400);
+    });
+}
+
+function cheatSolve() {
+    const pad = Math.max(PIECE_W, PIECE_H) * 0.3;
+    pieces.forEach(p => {
+        const r = parseInt(p.dataset.r);
+        const c = parseInt(p.dataset.c);
+        p.style.transition = "all 0.5s ease";
+        p.style.left = (c * PIECE_W - pad) + 'px';
+        p.style.top = (r * PIECE_H - pad) + 'px';
+        p.dataset.solved = "true";
+        p.classList.add('correct');
+    });
+    placedCount = ROWS * COLS;
+    document.getElementById('score').textContent = placedCount;
+    handleWin();
+}
+
+function closeModal() {
+    document.getElementById('winModal').classList.remove('active');
+}
+
+function startTimer() {
+    startTime = Date.now();
+    timerInterval = setInterval(() => {
+        const delta = Math.floor((Date.now() - startTime) / 1000);
+        const m = Math.floor(delta / 60).toString().padStart(2, '0');
+        const s = (delta % 60).toString().padStart(2, '0');
+        document.getElementById('timer').textContent = `${m}:${s}`;
+    }, 1000);
+}
 </script>
 </body>
 </html>
